@@ -246,7 +246,7 @@ body{padding:28px 20px 60px}
     });
   }
   var queued=false;
-  function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;if(raw)render();});}
+  function schedule(){if(queued)return;queued=true;setTimeout(function(){queued=false;if(raw)render();},0);}
   window.dash={
     colors:['#2a78d6','#d97706','#7c3aed','#0f9d8a','#c2417a'],
     calc:function(id,o){calcs[id]=o;},
