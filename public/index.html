@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>SIP Revenue Dashboard</title>
+<style>
+:root{
+--font-anthropic-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
+--font-anthropic-serif:Georgia,'Times New Roman',serif;
+--color-bg:#f7f7f5;--color-fg:#1f1f1d;--color-fg-muted:#6b6a66;--color-panel:#ffffff;--color-border-line:#e4e3df;
+--color-ok:#2e7d32;--color-bad:#b3261e;
+--cds-font-size-title:32px;--cds-font-size-heading:17px;--cds-font-size-body:15px;--cds-font-size-caption:13px;--cds-font-weight-medium:600;
+--cds-gap-sm:8px;--cds-gap-md:16px;--cds-gap-lg:24px;--cds-pad-lg:20px;--cds-radius:10px;
+--cds-chart-axis:#a9a8a3;--cds-chart-grid:#ecebe7;--cds-chart-reference:#8f8e89;--cds-chart-muted:#9b9a95;
+--cds-chart-status-critical:#c5362c;--cds-chart-status-warning:#d08a12;
+--cds-text-secondary:#6b6a66;--cds-surface-popover:#ffffff;--cds-border:#e4e3df;--cds-shadow-popover:0 4px 16px rgba(0,0,0,.10)}
+@media (prefers-color-scheme:dark){:root{
+--color-bg:#1b1b1a;--color-fg:#ecebe7;--color-fg-muted:#a3a29d;--color-panel:#252524;--color-border-line:#3a3a38;
+--color-ok:#6cc070;--color-bad:#f07167;--cds-chart-axis:#6f6e6a;--cds-chart-grid:#323230;--cds-chart-reference:#8a8984;--cds-chart-muted:#8a8984;
+--cds-chart-status-critical:#f07167;--cds-chart-status-warning:#e8a33a;--cds-text-secondary:#a3a29d;--cds-surface-popover:#2c2c2b;--cds-border:#3a3a38}}
+html,body{margin:0;background:var(--color-bg);color:var(--color-fg);font-family:var(--font-anthropic-sans)}
+body{padding:28px 20px 60px}
+.dash-select{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--color-border-line);border-radius:8px;background:var(--color-panel);color:var(--color-fg);min-width:200px}
+#gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--color-bg);z-index:50}
+#gate form{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:12px;padding:28px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px}
+#gate h1{font:400 24px/1.2 var(--font-anthropic-serif);margin:0}
+#gate input{font:inherit;padding:9px 11px;border:1px solid var(--color-border-line);border-radius:8px;background:var(--color-bg);color:var(--color-fg)}
+#gate button{font:inherit;font-weight:600;padding:9px;border:0;border-radius:8px;background:var(--color-fg);color:var(--color-bg);cursor:pointer}
+#gate p{margin:0;font-size:13px;color:var(--color-bad);min-height:1em}
+</style>
+</head>
+<body>
+<div id="gate"><form autocomplete="on"><h1>SIP Revenue Dashboard</h1><input type="password" name="pw" placeholder="Password" autocomplete="current-password" required autofocus><button type="submit">Open</button><p id="gate-msg"></p></form></div>
+<div id="app" hidden>
+<style>
+.sd{font-family:var(--font-anthropic-sans);color:var(--color-fg);max-width:1120px;margin:0 auto}
+.sd *{box-sizing:border-box}
+.sd h1{font:400 var(--cds-font-size-title)/1.2 var(--font-anthropic-serif);margin:0 0 6px}
+.sd h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0}
+.sd-lede{font-size:var(--cds-font-size-heading);line-height:1.45;margin:0 0 var(--cds-gap-md);max-width:72ch}
+.sd-lede b{font-family:var(--font-anthropic-serif);font-weight:400;font-variant-numeric:tabular-nums}
+.sd-nav{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--color-border-line);margin-bottom:var(--cds-gap-lg)}
+.sd-tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;font:inherit;font-weight:500;color:var(--color-fg-muted);cursor:pointer;margin-bottom:-1px}
+.sd-tab.on{color:var(--color-fg);border-bottom-color:var(--color-fg)}
+.sd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:var(--cds-gap-md);margin-bottom:var(--cds-gap-md)}
+.sd-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);min-width:0;margin-bottom:var(--cds-gap-md)}
+.sd-grid>.sd-card{margin-bottom:0}
+.sd-card h3{margin:0 0 2px;font-size:var(--cds-font-size-body);font-weight:var(--cds-font-weight-medium)}
+.sd-sub,.sd-muted{color:var(--color-fg-muted)}
+.sd-sub{margin:0 0 10px;font-size:var(--cds-font-size-caption)}
+.sd-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:var(--cds-gap-md)}
+.sd-bar label{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.sd-btn{appearance:none;background:none;border:1px solid var(--color-border-line);border-radius:999px;padding:3px 12px;font:inherit;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);cursor:pointer}
+.sd-btn.on{color:var(--color-fg);border-color:var(--color-fg)}
+.sd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--cds-gap-sm);margin-bottom:var(--cds-gap-md);min-height:110px}
+.sd-kpi{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.sd-k-l{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.sd-k-v{font:400 26px/1.15 var(--font-anthropic-serif);font-variant-numeric:tabular-nums}
+.sd-k-d{font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.sd-k-d2{font-size:11px}
+.sd-kpi svg{margin-top:4px}
+.up{color:var(--color-ok)}.dn{color:var(--color-bad)}.flat{color:var(--color-fg-muted)}
+.sd-host{position:relative}
+.sd svg text{font-size:12px;font-family:var(--font-anthropic-sans);fill:var(--color-fg)}
+.sd svg .mut{fill:var(--color-fg-muted)}
+.sd svg .sm{font-size:11px}
+.sd svg .hd{font-weight:500}
+.sd svg .tick text{fill:var(--cds-text-secondary);font-size:11px}
+.sd-tip{position:absolute;z-index:5;pointer-events:none;background:var(--cds-surface-popover);border:1px solid var(--cds-border);box-shadow:var(--cds-shadow-popover);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--cds-text-secondary);max-width:260px;line-height:1.4}
+.sd-tip-h{font-weight:500;color:var(--color-fg)}
+.sd-wrap{overflow-x:auto}
+.sd-tbl{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption)}
+.sd-tbl th{text-align:left;font-weight:500;color:var(--color-fg-muted);padding:6px 8px;border-bottom:1px solid var(--color-border-line);white-space:nowrap}
+.sd-tbl td{padding:9px 8px;border-bottom:1px solid var(--color-border-line);vertical-align:middle;font-variant-numeric:tabular-nums}
+.sd-tbl tr[data-key]{cursor:pointer}
+.sd-tbl tr[data-key]:hover td{background:color-mix(in srgb,var(--color-fg) 5%,transparent)}
+.sd-pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--color-border-line);font-size:11px;white-space:nowrap;color:var(--color-fg-muted)}
+.sd-db{position:relative;display:inline-block;width:84px;height:10px;vertical-align:middle;margin-right:6px}
+.sd-db:before{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--cds-chart-axis)}
+.sd-db i{position:absolute;top:0;height:100%;border-radius:3px}
+.sd-find{border-top:3px solid var(--color-border-line)}
+.sd-find ul{margin:6px 0 0;padding-left:18px;font-size:var(--cds-font-size-caption);line-height:1.5}
+.sd-find li{margin-bottom:8px}
+.sd-n{border-top-color:var(--cds-chart-status-critical)}
+.sd-mx{display:grid;gap:3px;min-width:560px}
+.sd-mc{border-radius:5px;padding:6px 4px;text-align:center;font-size:12px;line-height:1.25;min-height:46px;display:flex;flex-direction:column;justify-content:center;font-variant-numeric:tabular-nums}
+.sd-mc small{font-size:10px;color:var(--color-fg-muted)}
+.sd-mh{font-size:11px;color:var(--color-fg-muted);display:flex;align-items:flex-end;justify-content:center;text-align:center;padding:0 2px 4px;cursor:pointer}
+.sd-ml{font-size:12px;display:flex;align-items:center;cursor:pointer;font-weight:500}
+.sd-na{background:repeating-linear-gradient(45deg,transparent 0 5px,var(--cds-chart-grid) 5px 6px);color:var(--color-fg-muted);font-size:11px}
+.sd-foot{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-top:var(--cds-gap-lg)}
+.sd-foot summary{cursor:pointer;color:var(--color-fg)}
+.sd-foot li{margin-bottom:4px}
+.sd-note{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin:8px 0 0}
+.sd-eye{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--color-fg-muted);margin:24px 0 10px}
+.sd-eye span{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+.sd-hero{display:grid;grid-template-columns:minmax(220px,5fr) 7fr;gap:32px;align-items:center;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:24px 28px}
+.sd-big{font:400 56px/1 var(--font-anthropic-serif);font-variant-numeric:tabular-nums;margin:8px 0 6px}
+.sd-split{display:flex;gap:3px;height:16px;margin-top:8px}
+.sd-split i{display:block;border-radius:4px;min-width:6px}
+.sd-splitl{display:flex;justify-content:space-between;font-size:var(--cds-font-size-caption);margin:6px 0 18px;font-variant-numeric:tabular-nums}
+.sd-three{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.sd-m{border-left:2px solid var(--color-border-line);padding-left:12px;font-size:var(--cds-font-size-caption)}
+.sd-m b{display:block;font:400 22px/1.25 var(--font-anthropic-serif);font-variant-numeric:tabular-nums}
+.sd-dts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.sd-dt{appearance:none;text-align:left;font:inherit;color:inherit;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:14px 16px;display:flex;flex-direction:column;gap:7px;cursor:pointer}
+.sd-dt:hover{border-color:var(--color-fg)}
+.sd-dt-h{display:flex;flex-direction:column;gap:1px}
+.sd-dt-v{font:400 30px/1.1 var(--font-anthropic-serif);font-variant-numeric:tabular-nums}
+.sd-dt-bar{height:6px;background:color-mix(in srgb,var(--color-fg) 8%,transparent);border-radius:3px;overflow:hidden}
+.sd-dt-bar i{display:block;height:100%;border-radius:3px}
+.sd-dt-m{font-size:12px;font-variant-numeric:tabular-nums}
+.sd-ros{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.sd-ro{background:var(--color-panel);border:1px solid var(--color-border-line);border-top:3px solid var(--tone);border-radius:var(--cds-radius);padding:14px 16px}
+.sd-ro-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sd-dot{width:9px;height:9px;border-radius:50%;background:var(--tone)}
+.sd-ro-n{margin-left:auto;font-size:12px;color:var(--color-fg-muted)}
+.sd-ro ul{margin:0;padding:0;list-style:none}
+.sd-ro li{font-size:12.5px;line-height:1.45;padding:2px 0 2px 10px;border-left:2px solid var(--tone);margin-bottom:9px}
+.sd-ro details{font-size:12px;color:var(--color-fg-muted)}
+.sd-ro summary{cursor:pointer;margin-bottom:8px}
+.sd-o-say{font-size:var(--cds-font-size-heading);line-height:1.45;margin:0 0 14px;max-width:80ch}
+.sd-tbl tr.sd-on td{background:color-mix(in srgb,var(--color-fg) 7%,transparent)}
+.sd-tbl .sd-dot{display:inline-block;vertical-align:middle}
+.sd-coll>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.sd-coll>summary::-webkit-details-marker{display:none}
+.sd-coll>summary h3{margin:0}
+.sd-coll>summary::before{content:'▸';color:var(--color-fg-muted);font-size:12px;transition:transform .15s}
+.sd-coll[open]>summary::before{transform:rotate(90deg)}
+.sd-coll-hint{margin-left:auto;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.sd-coll-hint::after{content:'Show'}
+.sd-coll[open] .sd-coll-hint::after{content:'Hide'}
+.sd-coll[open]>summary{margin-bottom:6px}
+@media (max-width:720px){.sd-hero{grid-template-columns:1fr;gap:18px}.sd-big{font-size:44px}}
+</style>
+<div class='sd'>
+<h1>SIP revenue, Aug–Oct 2026</h1>
+<p class='sd-lede' data-draw='lede' data-source='headline'>—</p>
+<nav class='sd-nav' aria-label='Views'>
+<button type='button' class='sd-tab' data-view='insights'>Insights</button>
+<button type='button' class='sd-tab' data-view='overview'>Overview</button>
+<button type='button' class='sd-tab' data-view='dept'>Departments</button>
+<button type='button' class='sd-tab' data-view='order'>Order types</button>
+<button type='button' class='sd-tab' data-view='outlook'>Outlook</button>
+</nav>
+
+<section data-sec='insights'>
+<div class='sd-hero' data-draw='hero' data-source='bridge_sum kpi' style='min-height:150px'>—</div>
+<div class='sd-eye'>Where it came from <span>Click a department to open it</span></div>
+<div class='sd-dts' data-draw='dept_strip' data-source='dept' style='min-height:150px'></div>
+<div class='sd-eye'>What moved revenue</div>
+<div class='sd-grid'>
+<div class='sd-card'><h3>Net change, step by step</h3><p class='sd-sub'>₹ lakh, September → October. Blue added revenue, red removed it.</p><div data-draw='waterfall' data-source='bridge bridge_sum' style='min-height:340px'>—</div></div>
+<div class='sd-card'><h3>Who moved it</h3><p class='sd-sub'>Biggest department × order-type changes, ₹ lakh. Cells the review does not break out cannot rank.</p><div data-draw='movers' data-source='movers' style='min-height:200px'>—</div></div>
+</div>
+<div class='sd-eye'>The read-out</div>
+<div class='sd-ros' data-draw='readout' data-source='notes' style='min-height:150px'></div>
+</section>
+
+<section data-sec='overview' hidden>
+<div class='sd-kpis' data-draw='kpis' data-source='kpi'></div>
+<div class='sd-grid'>
+<div class='sd-card'><h3>Three months on one scale</h3><p class='sd-sub'>Every measure indexed to August = 100. Subs and active subs sit below it, cancellations above, and value per sub holds revenue near flat.</p><div data-draw='indexchart' data-source='kpi' style='min-height:300px'>—</div></div>
+<div class='sd-card'><h3>Subs against value per sub</h3>
+<div class='sd-bar'><button type='button' class='sd-btn sd-lens' data-lens='order'>By order type</button><button type='button' class='sd-btn sd-lens' data-lens='dept'>By department</button></div>
+<p class='sd-sub'>Sep → Oct. Above the dashed line revenue rose, below it revenue fell. Bubble size is the ₹ change in revenue; blue gained, red lost.</p>
+<div data-draw='pvmap' data-source='order dept' style='min-height:320px'>—</div></div>
+</div>
+</section>
+
+<section data-sec='dept' hidden>
+<div class='sd-bar'><label for='dsel'>Department</label><select id='dsel' class='dash-select' data-draw='dept_select' data-source='dept' aria-label='Department'></select><button type='button' class='sd-btn' data-reset='dept' data-box='dept-one'>← All departments</button></div>
+<div data-box='dept-all'>
+<div class='sd-card'><h3>All departments, Sep → Oct</h3><p class='sd-sub'>One row per department. Click a row to open it.</p><div class='sd-wrap' data-draw='dept_table' data-source='dept' style='min-height:240px'>—</div></div>
+</div>
+<div data-box='dept-one' hidden>
+<h2 data-draw='dept_title' data-source='dept' style='margin-bottom:10px'>—</h2>
+<div class='sd-kpis' data-draw='dept_tiles' data-source='dept'></div>
+<div class='sd-card'><h3>Which order types moved</h3><p class='sd-sub'>Change in subs and in revenue for each order type, Sep → Oct. Outlined bars sit on a base under 150 subs. Bars stop at ±50%.</p><div data-draw='dept_bf' data-source='cells order' style='min-height:240px'>—</div></div>
+<div class='sd-grid'>
+<div class='sd-card sd-find sd-w'><h3>Highlights</h3><ul data-draw='dn_working' data-source='notes'></ul></div>
+<div class='sd-card sd-find sd-n'><h3>Lowlights</h3><ul data-draw='dn_not' data-source='notes'></ul></div>
+<div class='sd-card sd-find'><h3>Flat</h3><ul data-draw='dn_steady' data-source='notes'></ul></div>
+</div>
+</div>
+</section>
+
+<section data-sec='order' hidden>
+<div class='sd-bar'><label for='osel'>Order type</label><select id='osel' class='dash-select' data-draw='order_select' data-source='order' aria-label='Order type'></select><button type='button' class='sd-btn' data-reset='otype' data-box='order-one'>← All order types</button></div>
+<div data-box='order-all'>
+<div class='sd-card'><h3>All order types, all departments, Sep → Oct</h3><p class='sd-sub'>Click a row to open an order type.</p><div class='sd-wrap' data-draw='order_table' data-source='order' style='min-height:240px'>—</div></div>
+<div class='sd-card'><h3>Where each order type moved, by department</h3><p class='sd-sub'>Revenue change, Sep → Oct. Blue grew, red shrank. Hatched cells are not in the review or too small to read; a ◦ marks a base under 150 subs. Click a name to filter.</p><div class='sd-wrap' data-draw='matrix' data-source='cells order dept' style='min-height:260px'>—</div></div>
+</div>
+<div data-box='order-one' hidden>
+<h2 data-draw='order_title' data-source='order' style='margin-bottom:10px'>—</h2>
+<div class='sd-kpis' data-draw='order_tiles' data-source='order'></div>
+<div class='sd-card'><h3>Which departments moved it</h3><p class='sd-sub'>Change in subs and in revenue for this order type, by department. Outlined bars sit on a base under 150 subs. Bars stop at ±50%.</p><div data-draw='order_bf' data-source='cells dept' style='min-height:200px'>—</div></div>
+<div class='sd-grid'>
+<div class='sd-card sd-find sd-w'><h3>Highlights</h3><ul data-draw='on_working' data-source='notes'></ul></div>
+<div class='sd-card sd-find sd-n'><h3>Lowlights</h3><ul data-draw='on_not' data-source='notes'></ul></div>
+<div class='sd-card sd-find'><h3>Flat</h3><ul data-draw='on_steady' data-source='notes'></ul></div>
+</div>
+</div>
+</section>
+
+<section data-sec='outlook' hidden>
+<div data-draw='o_controls' data-source='outlook'></div>
+<div class='sd-card'>
+<div data-draw='o_head' data-source='outlook' style='min-height:120px'>—</div>
+<div data-draw='o_chart' data-source='lines_all outlook' style='min-height:300px'>—</div>
+<p class='sd-note'>Solid line: actual, Nov 2025 to Oct 2026. Dashed: projection from the last 6 months' trend, at the current rate and with the fall 1.5× faster. Critical is 10% below the last 6-month average for Recurring and All order types, and 30% below for every other order type; warning is halfway there. Pick Compare departments to see every department on one scale.</p>
+</div>
+<details class='sd-card sd-coll'><summary><h3>Watchlist: every department × order type</h3><span class='sd-coll-hint'></span></summary><p class='sd-sub'>Sorted by how close each line is to critical. Click a row to load it in the chart above.</p><div class='sd-wrap' data-draw='o_rank' data-source='outlook' style='min-height:240px'>—</div></details>
+</section>
+
+<details class='sd-foot'><summary>Notes and caveats</summary>
+<ul>
+<li>All figures load from the data files listed in data/README.md. None are stored in this page.</li>
+<li>Churn rate on the overview is cancellations ÷ subs charged. The department view uses cancellations ÷ active subs.</li>
+<li>Value per sub change is worked out from the revenue and subs changes.</li>
+<li>Outlook projections are a straight-line trend over the last 6 months, not a forecast.</li>
+</ul></details>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script>
+(function(){
+  var calcs={},draws={},cbs=[],raw=null,cache={};
+  var params={view:'insights',dept:'All',otype:'All',lens:'order',o_dept:'All departments',o_otype:'Fresh',o_meas:'subs'};
+  function val(id){
+    if(raw&&Object.prototype.hasOwnProperty.call(raw,id))return raw[id];
+    if(cache[id])return cache[id];
+    var c=calcs[id];if(!c)throw new Error('Unknown data: '+id);
+    return cache[id]=c.fn.apply(null,c.inputs.map(val));
+  }
+  function render(){
+    cbs.forEach(function(f){try{f();}catch(e){console.error(e);}});
+    Object.keys(draws).forEach(function(n){
+      document.querySelectorAll('[data-draw="'+n+'"]').forEach(function(el){
+        if(el.closest('[hidden]'))return;
+        try{draws[n](el);}catch(e){console.error('draw '+n,e);}
+      });
+    });
+  }
+  var queued=false;
+  function schedule(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;if(raw)render();});}
+  window.dash={
+    colors:['#2a78d6','#d97706','#7c3aed','#0f9d8a','#c2417a'],
+    calc:function(id,o){calcs[id]=o;},
+    draw:function(n,f){draws[n]=f;},
+    onData:function(f){cbs.push(f);},
+    data:function(id){if(!raw)return{status:'loading'};try{return{status:'ok',data:val(id)};}catch(e){console.error(e);return{status:'error'};}},
+    params:function(){return params;},
+    setParams:function(o){Object.assign(params,o);schedule();},
+    setLink:function(v){try{history.replaceState(null,'','#'+v);}catch(e){}},
+    _load:function(d){raw=d;cache={};schedule();}
+  };
+  var t;window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(schedule,150);});
+  var gate=document.getElementById('gate'),msg=document.getElementById('gate-msg'),form=gate.querySelector('form');
+  function open(pw){
+    msg.textContent='';
+    return fetch('/api/data',{headers:{'x-dash-key':pw},cache:'no-store'}).then(function(r){
+      if(r.status===401)throw new Error('Wrong password.');
+      if(!r.ok)return r.json().catch(function(){return{};}).then(function(j){throw new Error(j.error||'Could not load the data.');});
+      return r.json();
+    }).then(function(d){
+      try{sessionStorage.setItem('sipdash',pw);}catch(e){}
+      gate.hidden=true;document.getElementById('app').hidden=false;window.dash._load(d);
+    });
+  }
+  form.addEventListener('submit',function(e){e.preventDefault();open(form.elements.pw.value).catch(function(err){msg.textContent=err.message;});});
+  var saved=null;try{saved=sessionStorage.getItem('sipdash');}catch(e){}
+  if(saved)open(saved).catch(function(){try{sessionStorage.removeItem('sipdash');}catch(e){}});
+})();
+</script>
+<script>
+const VIEWS=['insights','overview','dept','order','outlook'];
+const POS=dash.colors[0],NEG='var(--cds-chart-status-critical)',MUT='var(--cds-chart-muted)',FG='var(--color-fg)';
+const f0=d3.format(',.0f'),f1=d3.format(',.1f'),f2=d3.format(',.2f');
+const sg=(v,d)=>(v>0?'+':v<0?'-':'')+d3.format(',.'+d+'f')(Math.abs(v));
+const dl=(v)=>Math.abs(v)<0.005?'<0.01L':sg(v,2)+'L';
+const Lk=(v)=>v<10?f2(v):f1(v);
+const col=(v)=>v>=0?POS:NEG;
+function h(t,a,...k){const e=document.createElement(t);if(a){for(const n of Object.keys(a)){const v=a[n];if(n==='class')e.className=v;else if(n==='text')e.textContent=v;else e.setAttribute(n,v);}}for(const c of k.flat()){if(c!=null)e.append(c.nodeType?c:document.createTextNode(String(c)));}return e;}
+function mk(txt,src,field,where){const s=h('span',{text:txt,'data-source':src,'data-field':field});if(where)s.setAttribute('data-where',where);return s;}
+function need(el,ids){const o={};for(const id of ids){const s=dash.data(id);if(s.status!=='ok'){el.textContent=s.status==='error'?'Failed to load':'—';return null;}o[id]=s.data;}return o;}
+function chip(v,txt,goodUp){const good=v===0?null:(v>0)===goodUp;return h('span',{class:good===null?'flat':good?'up':'dn',text:(v>0?'▲ ':v<0?'▼ ':'■ ')+txt});}
+function mkTip(host){host.classList.add('sd-host');const t=h('div',{class:'sd-tip'});t.hidden=true;host.append(t);return{on(ev,lines){t.replaceChildren(...lines.map((l,i)=>h('div',{class:i?'':'sd-tip-h',text:l})));t.hidden=false;const r=host.getBoundingClientRect();let x=ev.clientX-r.left+14;const y=ev.clientY-r.top+14;if(x+t.offsetWidth>r.width)x=Math.max(0,ev.clientX-r.left-t.offsetWidth-14);t.style.left=x+'px';t.style.top=y+'px';},off(){t.hidden=true;}};}
+function dbar(v,max){const w=Math.min(50,Math.abs(v)/max*50);const i=h('i');i.style.background=col(v);i.style.width=Math.max(w,1)+'%';i.style.left=v>=0?'50%':(50-w)+'%';return h('span',{class:'sd-db','aria-hidden':'true'},i);}
+function setMk(sel,r){if(r.src){sel.attr('data-source',r.src).attr('data-field',r.field);if(r.where)sel.attr('data-where',r.where);if(r.row!=null)sel.attr('data-row',r.row);}}
+
+dash.calc('kpi',{title:'Headline measures by month',description:'Change vs September and vs August for the six overview measures.',inputs:['monthly'],fn:(monthly)=>{const m={};monthly.forEach(r=>{m[r.month]=r;});const a=m.Aug,s=m.Sep,o=m.Oct;const defs=[['revenue_L','Revenue'],['subs_charged','Subs charged'],['avg_value','Value per sub'],['cancellations','Cancellations'],['churn_pct','Churn rate'],['active_subs','Active subs']];return defs.map(([k,label])=>({metric:k,label:label,aug:a[k],sep:s[k],oct:o[k],d_sep:k==='revenue_L'?o.rev_delta_prev_L:Math.round((o[k]-s[k])*100)/100,d_sep_pct:k==='revenue_L'?Math.round(o.rev_delta_prev_L/s[k]*1000)/10:Math.round((o[k]/s[k]-1)*1000)/10,d_aug:Math.round((o[k]-a[k])*100)/100,d_aug_pct:Math.round((o[k]/a[k]-1)*1000)/10,idx_sep:s[k]/a[k]*100,idx_oct:o[k]/a[k]*100}));}});
+dash.calc('dept',{title:'Departments with derived changes',description:'Subs change %, value per sub change % (from the revenue and subs changes) and a one-line read for each department.',inputs:['depts'],fn:(depts)=>depts.map(d=>{const sp=d.subs_delta/d.subs_sep*100,vp=((1+d.rev_pct/100)/(1+sp/100)-1)*100;return Object.assign({},d,{subs_pct:Math.round(sp*100)/100,value_pct:Math.round(vp*100)/100,subs_gap:(d.subs_oct-d.subs_sep)-d.subs_delta,shape:(sp<0?'Fewer subs':'More subs')+', '+(vp<0?'less':'more')+' value each'});})});
+dash.calc('order',{title:'Order types with derived changes',description:'Value per sub change % (from the revenue and subs changes) and a one-line read for each order type.',inputs:['order_overall'],fn:(o)=>o.slice().sort((a,b)=>a.rank-b.rank).map(r=>{const vp=((1+r.rev_pct/100)/(1+r.subs_pct/100)-1)*100;return Object.assign({},r,{value_pct:Math.round(vp*100)/100,shape:(r.subs_pct<0?'Fewer subs':'More subs')+', '+(vp<0?'less':'more')+' value each'});})});
+dash.calc('cells',{title:'Department × order type with derived changes',description:'Fills the subs and revenue change of each cell from the review percentages, or from the Sep and Oct values where only those are given.',inputs:['dept_order'],fn:(c)=>c.map(r=>{const hs=r.subs_sep!=null&&r.subs_oct!=null,hr=r.rev_sep_L!=null&&r.rev_oct_L!=null;const sd=r.subs_delta!=null?r.subs_delta:(hs?r.subs_oct-r.subs_sep:null);const sp=r.subs_pct!=null?r.subs_pct:(hs&&r.subs_sep>0?(r.subs_oct/r.subs_sep-1)*100:null);const rd=r.rev_delta_L!=null?r.rev_delta_L:(hr?r.rev_oct_L-r.rev_sep_L:null);const rp=r.rev_pct!=null?r.rev_pct:(hr&&r.rev_sep_L>0?(r.rev_oct_L/r.rev_sep_L-1)*100:null);const vp=(sp!=null&&rp!=null)?((1+rp/100)/(1+sp/100)-1)*100:null;const q=(v,n)=>v==null?null:Math.round(v*n)/n;return Object.assign({},r,{subs_delta_c:sd,subs_pct_c:q(sp,100),rev_delta_c:q(rd,1000),rev_pct_c:q(rp,100),value_pct_c:q(vp,100),thin:r.subs_sep!=null&&r.subs_sep<150});})});
+dash.calc('movers',{title:'Biggest movers',description:'The six department × order-type cells with the largest ₹ change in revenue.',inputs:['cells'],fn:(cells)=>cells.filter(r=>r.rev_delta_c!=null).sort((a,b)=>Math.abs(b.rev_delta_c)-Math.abs(a.rev_delta_c)).slice(0,6).map(r=>({dept:r.dept,order:r.order,delta_L:Math.round(r.rev_delta_c*100)/100}))});
+dash.calc('bridge_sum',{title:'Bridge totals',description:'Total added, total removed and net change in ₹ lakh.',inputs:['bridge'],fn:(b)=>{const add=b.filter(r=>r.delta_L>0).reduce((s,r)=>s+r.delta_L,0),rem=b.filter(r=>r.delta_L<0).reduce((s,r)=>s+r.delta_L,0);return[{added:Math.round(add*100)/100,removed:Math.round(rem*100)/100,net:Math.round((add+rem)*100)/100}];}});
+dash.calc('headline',{title:'Headline sentence',description:'The figures behind the sentence under the title.',inputs:['kpi','dept','bridge_sum'],fn:(kpi,dept,bs)=>{const r=kpi.find(k=>k.metric==='revenue_L'),s=kpi.find(k=>k.metric==='subs_charged');const lead=dept.slice().sort((a,b)=>b.rev_delta_L-a.rev_delta_L)[0];return[{revenue:r.oct,rev_pct_abs:Math.abs(r.d_sep_pct),rev_up:r.d_sep_pct>=0,subs_pct_abs:Math.abs(s.d_sep_pct),subs_up:s.d_sep_pct>=0,subs_abs:Math.abs(s.d_sep),lead_dept:lead.dept,lead_share:Math.round(lead.rev_delta_L/bs[0].net*100),net:bs[0].net}];}});
+
+dash.draw('lede',el=>{const d=need(el,['headline']);if(!d)return;const x=d.headline[0];const R=(f)=>({'data-source':'headline','data-field':f,'data-row':0});const b=(t,f)=>h('b',Object.assign({text:t},R(f)));const kids=['Revenue held at ₹',b(f1(x.revenue),'revenue'),'L in October, ',x.rev_up?'up ':'down ',b(f1(x.rev_pct_abs),'rev_pct_abs'),'% on September, while subs charged ',x.subs_up?'rose ':'fell ',b(f1(x.subs_pct_abs),'subs_pct_abs'),'% (',b(f0(x.subs_abs),'subs_abs'),x.subs_up?' more). ':' fewer). '];if(x.rev_up&&!x.subs_up)kids.push('Higher value per sub carried the month, and '+x.lead_dept+' delivered ',b(String(x.lead_share),'lead_share'),'% of the ₹',b(f2(x.net),'net'),'L net gain.');el.replaceChildren(...kids);});
+
+function ladder(el,rows,o){el.replaceChildren();el.classList.add('sd-host');const W=Math.max(el.clientWidth,300),labW=o.labW?Math.min(o.labW,Math.round(W*0.55)):Math.min(170,Math.round(W*0.4)),valW=62,pl=labW+6,pw=Math.max(W-pl-valW-8,80);const vs=rows.filter(r=>r.type!=='head').map(r=>r.v),lo=Math.min(0,d3.min(vs)),hi=Math.max(0,d3.max(vs)),x=d3.scaleLinear().domain([lo,hi]).range([0,pw]);let y=4;const pos=rows.map(r=>{const hh=r.type==='head'?28:(o.rh||30);const p={r:r,y:y,hh:hh};y+=hh;return p;});const H=y+4;const svg=d3.select(el).append('svg').attr('viewBox','0 0 '+W+' '+H).attr('width','100%').attr('height',H).attr('role','img').attr('aria-label',o.aria);const tip=mkTip(el);svg.append('line').attr('x1',pl+x(0)).attr('x2',pl+x(0)).attr('y1',0).attr('y2',H).style('stroke','var(--cds-chart-axis)');pos.forEach(({r,y,hh})=>{const cy=y+hh/2;if(r.type==='head'){svg.append('text').attr('x',0).attr('y',cy+4).attr('class','hd').text(r.label);setMk(svg.append('text').attr('x',W).attr('y',cy+4).attr('text-anchor','end').attr('class','hd').text(r.text),r);return;}if(r.type==='net'){svg.append('line').attr('x1',0).attr('x2',W).attr('y1',y).attr('y2',y).style('stroke','var(--color-border-line)');}svg.append('text').attr('x',0).attr('y',r.sub?cy-2:cy+4).attr('class',r.type==='net'?'hd':'').text(r.label);if(r.sub)svg.append('text').attr('x',0).attr('y',cy+11).attr('class','mut sm').text(r.sub);svg.append('rect').attr('x',pl+Math.min(x(0),x(r.v))).attr('y',cy-7).attr('width',Math.max(2,Math.abs(x(r.v)-x(0)))).attr('height',14).attr('rx',3).style('fill',r.type==='net'?FG:col(r.v));setMk(svg.append('text').attr('x',W).attr('y',cy+4).attr('text-anchor','end').attr('class',r.type==='net'?'hd':'').text(dl(r.v)),r);svg.append('rect').attr('x',0).attr('y',y).attr('width',W).attr('height',hh).style('fill','transparent').on('mousemove',ev=>tip.on(ev,[r.label,(r.sub?r.sub+' · ':'')+dl(r.v)])).on('mouseleave',()=>tip.off());});}
+dash.draw('movers',el=>{const d=need(el,['movers']);if(!d)return;ladder(el,d.movers.map(r=>({type:'bar',label:r.order,sub:r.dept,v:r.delta_L,src:'movers',field:'delta_L',where:'dept='+r.dept+'&order='+r.order})),{rh:38,aria:'Largest department and order type revenue changes, in rupees lakh'});});
+
+function fillNotes(el,scope,bucket){const g=dash.data('notes');if(g.status!=='ok'){el.replaceChildren();return;}const items=g.data.map((r,i)=>Object.assign({i:i},r)).filter(r=>r.scope===scope&&r.bucket===bucket);el.replaceChildren(...(items.length?items.map(r=>h('li',{text:r.text,'data-source':'notes','data-field':'text','data-row':r.i})):[h('li',{class:'sd-muted',text:'Nothing flagged in the review.'})]));}
+[['working','dn_working'],['not','dn_not'],['steady','dn_steady']].forEach(([b,n])=>dash.draw(n,el=>fillNotes(el,dash.params().dept||'All',b)));
+[['working','on_working'],['not','on_not'],['steady','on_steady']].forEach(([b,n])=>dash.draw(n,el=>fillNotes(el,dash.params().otype||'All',b)));
+
+const KP={revenue_L:{fmt:v=>'₹'+f1(v)+'L',dfmt:v=>(v>0?'+':'-')+'₹'+f2(Math.abs(v))+'L',up:true},subs_charged:{fmt:f0,dfmt:v=>sg(v,0),up:true},avg_value:{fmt:v=>'₹'+f0(v),dfmt:v=>sg(v,0),up:true},cancellations:{fmt:f0,dfmt:v=>sg(v,0),up:false},churn_pct:{fmt:v=>f2(v)+'%',dfmt:v=>sg(v,2)+' pt',up:false,pt:true},active_subs:{fmt:f0,dfmt:v=>sg(v,0),up:true}};
+function spark(v){const w=64,hh=20,x=d3.scaleLinear().domain([0,2]).range([3,w-3]),lo=d3.min(v),hi=d3.max(v),y=d3.scaleLinear().domain([lo,hi===lo?lo+1:hi]).range([hh-3,3]);const s=d3.create('svg').attr('viewBox','0 0 '+w+' '+hh).attr('width',w).attr('height',hh).attr('role','img').attr('aria-label','Aug, Sep, Oct trend');s.append('path').attr('d',d3.line()(v.map((a,i)=>[x(i),y(a)]))).attr('fill','none').style('stroke','var(--cds-chart-axis)').attr('stroke-width',1.5);s.selectAll('circle').data(v).join('circle').attr('cx',(a,i)=>x(i)).attr('cy',a=>y(a)).attr('r',(a,i)=>i===2?3:2).style('fill',(a,i)=>i===2?FG:'var(--cds-chart-axis)');return s.node();}
+dash.draw('kpis',el=>{const d=need(el,['kpi']);if(!d)return;el.replaceChildren(...d.kpi.map(r=>{const k=KP[r.metric];return h('div',{class:'sd-kpi'},h('div',{class:'sd-k-l',text:r.label}),h('div',{class:'sd-k-v'},mk(k.fmt(r.oct),'kpi','oct','metric='+r.metric)),h('div',{class:'sd-k-d'},chip(r.d_sep,k.dfmt(r.d_sep)+(k.pt?'':' ('+sg(r.d_sep_pct,1)+'%)'),k.up),h('span',{class:'sd-muted',text:' vs Sep'})),h('div',{class:'sd-k-d2 sd-muted',text:'vs Aug '+(k.pt?sg(r.d_aug,2)+' pt':sg(r.d_aug_pct,1)+'%')}),spark([r.aug,r.sep,r.oct]));}));});
+
+dash.draw('indexchart',el=>{const d=need(el,['kpi']);if(!d)return;el.replaceChildren();const W=Math.max(el.clientWidth,300),H=Math.round(Math.min(340,Math.max(260,W*0.62))),m={t:12,r:W<420?112:140,b:28,l:34};const by={};d.kpi.forEach(r=>{by[r.metric]=r;});const S=[{k:'revenue_L',n:'Revenue',c:FG,w:3},{k:'avg_value',n:'Value per sub',c:POS,w:2.5},{k:'cancellations',n:'Cancellations',c:NEG,w:2.5},{k:'subs_charged',n:'Subs charged',c:MUT,w:2},{k:'active_subs',n:'Active subs',c:MUT,w:2,dash:'4 3'}];const idx=(s)=>[100,by[s.k].idx_sep,by[s.k].idx_oct];const all=S.flatMap(idx);const x=d3.scalePoint().domain(['Aug','Sep','Oct']).range([m.l+10,W-m.r]),y=d3.scaleLinear().domain([Math.floor(d3.min(all)-1),Math.ceil(d3.max(all)+1)]).range([H-m.b,m.t]);const svg=d3.select(el).append('svg').attr('viewBox','0 0 '+W+' '+H).attr('width','100%').attr('height',H).attr('role','img').attr('aria-label','Revenue, value per sub, cancellations, subs charged and active subs indexed to August equals 100');const tip=mkTip(el);svg.append('g').attr('class','tick').attr('transform','translate('+m.l+',0)').call(d3.axisLeft(y).ticks(5).tickSize(-(W-m.l-m.r+10)).tickFormat(v=>v)).call(g=>{g.select('.domain').remove();g.selectAll('line').style('stroke','var(--cds-chart-grid)');});svg.append('line').attr('x1',m.l).attr('x2',W-m.r+10).attr('y1',y(100)).attr('y2',y(100)).style('stroke','var(--cds-chart-reference)').attr('stroke-dasharray','4 3');['Aug','Sep','Oct'].forEach(mo=>svg.append('text').attr('x',x(mo)).attr('y',H-8).attr('text-anchor','middle').attr('class','mut').text(mo));const labs=[];S.forEach(s=>{const v=idx(s);svg.append('path').attr('d',d3.line()(v.map((a,i)=>[x(['Aug','Sep','Oct'][i]),y(a)]))).attr('fill','none').style('stroke',s.c).attr('stroke-width',s.w).attr('stroke-linejoin','round').attr('stroke-dasharray',s.dash||null);svg.selectAll(null).data(v).enter().append('circle').attr('cx',(a,i)=>x(['Aug','Sep','Oct'][i])).attr('cy',a=>y(a)).attr('r',4).style('fill',s.c).style('stroke','var(--color-panel)').attr('stroke-width',2);labs.push({s:s,y:y(v[2]),txt:s.n+' '+sg(v[2]-100,1)+'%'});});labs.sort((a,b)=>a.y-b.y);for(let i=1;i<labs.length;i++){if(labs[i].y-labs[i-1].y<14)labs[i].y=labs[i-1].y+14;}labs.forEach(l=>svg.append('text').attr('x',x('Oct')+10).attr('y',l.y+4).attr('class','sm').text(l.txt));['Aug','Sep','Oct'].forEach((mo,i)=>{svg.append('rect').attr('x',x(mo)-(W-m.l-m.r)/4).attr('width',(W-m.l-m.r)/2).attr('y',m.t).attr('height',H-m.t-m.b).style('fill','transparent').on('mousemove',ev=>tip.on(ev,[mo].concat(S.map(s=>{const r=by[s.k];const val=[r.aug,r.sep,r.oct][i];return s.n+': '+f1(idx(s)[i])+' ('+(s.k==='revenue_L'?'₹'+f1(val)+'L':s.k==='churn_pct'?val+'%':s.k==='avg_value'?'₹'+f0(val):f0(val))+')';})))).on('mouseleave',()=>tip.off());});});
+
+dash.draw('pvmap',el=>{const d=need(el,['order','dept']);if(!d)return;el.replaceChildren();const lens=dash.params().lens==='dept'?'dept':'order';const rows=lens==='dept'?d.dept.map(r=>({n:r.dept,x:r.subs_pct,y:r.value_pct,v:r.rev_delta_L})):d.order.map(r=>({n:r.order,x:r.subs_pct,y:r.value_pct,v:r.contrib_L}));const W=Math.max(el.clientWidth,300),H=Math.round(Math.min(400,Math.max(320,W*0.74))),m={t:12,r:14,b:50,l:50};const xs=rows.map(r=>r.x),ys=rows.map(r=>r.y);const x0=Math.min(0,d3.min(xs)),x1=Math.max(0,d3.max(xs)),y0=Math.min(0,d3.min(ys)),y1=Math.max(0,d3.max(ys));const px=(x1-x0)*0.16+0.05,py=(y1-y0)*0.16+0.05;const x=d3.scaleLinear().domain([x0-px,x1+px]).range([m.l,W-m.r]),y=d3.scaleLinear().domain([y0-py,y1+py]).range([H-m.b,m.t]);const mx=d3.max(rows,r=>Math.abs(r.v)),rad=(v)=>5+13*Math.sqrt(Math.abs(v)/mx);const svg=d3.select(el).append('svg').attr('viewBox','0 0 '+W+' '+H).attr('width','100%').attr('height',H).attr('role','img').attr('aria-label','Change in subs charged against change in value per sub, '+(lens==='dept'?'by department':'by order type'));const tip=mkTip(el);const cid='c'+Math.floor(Math.random()*1e6);svg.append('clipPath').attr('id',cid).append('rect').attr('x',m.l).attr('y',m.t).attr('width',W-m.l-m.r).attr('height',H-m.t-m.b);svg.append('g').attr('class','tick').attr('transform','translate(0,'+(H-m.b)+')').call(d3.axisBottom(x).ticks(5).tickSize(-(H-m.t-m.b)).tickFormat(v=>v+'%')).call(g=>{g.select('.domain').remove();g.selectAll('line').style('stroke','var(--cds-chart-grid)');});svg.append('g').attr('class','tick').attr('transform','translate('+m.l+',0)').call(d3.axisLeft(y).ticks(5).tickSize(-(W-m.l-m.r)).tickFormat(v=>v+'%')).call(g=>{g.select('.domain').remove();g.selectAll('line').style('stroke','var(--cds-chart-grid)');});svg.append('line').attr('x1',x(0)).attr('x2',x(0)).attr('y1',m.t).attr('y2',H-m.b).style('stroke','var(--cds-chart-axis)');svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).style('stroke','var(--cds-chart-axis)');const dom=x.domain();const pts=d3.range(0,61).map(i=>dom[0]+(dom[1]-dom[0])*i/60).filter(v=>v>-99).map(v=>[x(v),y((100/(100+v)-1)*100)]);svg.append('path').attr('d',d3.line()(pts)).attr('clip-path','url(#'+cid+')').attr('fill','none').style('stroke',FG).attr('stroke-width',1.2).attr('stroke-dasharray','5 4').attr('opacity',0.7);svg.append('text').attr('x',(W-m.l-m.r)/2+m.l).attr('y',H-10).attr('text-anchor','middle').attr('class','mut sm').text('← fewer subs  ·  change in subs charged  ·  more subs →');svg.append('text').attr('transform','translate(12,'+((H-m.b+m.t)/2)+') rotate(-90)').attr('text-anchor','middle').attr('class','mut sm').text('← less  ·  change in value per sub  ·  more →');svg.selectAll('circle.b').data(rows).join('circle').attr('class','b').attr('cx',r=>x(r.x)).attr('cy',r=>y(r.y)).attr('r',r=>rad(r.v)).style('fill',r=>col(r.v)).attr('fill-opacity',0.85).style('stroke','var(--color-panel)').attr('stroke-width',2).on('mousemove',(ev,r)=>tip.on(ev,[r.n,'Subs '+sg(r.x,1)+'%','Value per sub '+sg(r.y,1)+'%','Revenue '+sg(r.v,2)+'L'])).on('mouseleave',()=>tip.off());const labs=rows.map(r=>({r:r,y:y(r.y),left:x(r.x)>W*0.68})).sort((a,b)=>a.y-b.y);for(let i=1;i<labs.length;i++){if(labs[i].y-labs[i-1].y<13&&labs[i].left===labs[i-1].left)labs[i].y=labs[i-1].y+13;}labs.forEach(l=>svg.append('text').attr('x',l.left?x(l.r.x)-rad(l.r.v)-5:x(l.r.x)+rad(l.r.v)+5).attr('y',l.y+4).attr('text-anchor',l.left?'end':'start').text(l.r.n));});
+
+function dcell(v,good,txt){return h('span',{class:'flat'},v==null?'—':chip(v,txt,good));}
+dash.draw('dept_table',el=>{const d=need(el,['dept']);if(!d)return;const mx=d3.max(d.dept,r=>Math.abs(r.rev_delta_L));const heads=['Department','Revenue ₹L, Sep → Oct','Revenue change ₹L','Subs charged','Value per sub','Cancellation churn','Read'];const tb=h('table',{class:'sd-tbl'},h('thead',null,h('tr',null,...heads.map(t=>h('th',{text:t})))),h('tbody',null,...d.dept.map(r=>{const w='dept='+r.dept;const tr=h('tr',{'data-key':r.dept,tabindex:0},h('td',null,h('b',{text:r.dept}),h('div',{class:'sd-muted'},mk(String(r.share_pct),'dept','share_pct',w),'% of revenue')),h('td',{class:'num'},mk(Lk(r.rev_sep_L),'dept','rev_sep_L',w),' → ',mk(Lk(r.rev_oct_L),'dept','rev_oct_L',w)),h('td',{class:'num'},dbar(r.rev_delta_L,mx),mk(sg(r.rev_delta_L,2),'dept','rev_delta_L',w)),h('td',{class:'num'},chip(r.subs_delta,sg(r.subs_delta,0)+' ('+sg(r.subs_pct,1)+'%)',true)),h('td',{class:'num'},chip(r.value_pct,sg(r.value_pct,1)+'%',true)),h('td',{class:'num'},chip(r.cancel_churn_oct-r.cancel_churn_sep,r.cancel_churn_sep+'% → '+r.cancel_churn_oct+'%',false)),h('td',null,h('span',{class:'sd-pill',text:r.shape})));const go=()=>dash.setParams({dept:r.dept});tr.addEventListener('click',go);tr.addEventListener('keydown',e=>{if(e.key==='Enter')go();});return tr;})));el.replaceChildren(tb);});
+dash.draw('order_table',el=>{const d=need(el,['order']);if(!d)return;const mp=35,mc=d3.max(d.order,r=>Math.abs(r.contrib_L));const heads=['Order type','Subs change','Revenue change','Value per sub, Sep → Oct','Contribution to net change','Read'];const tb=h('table',{class:'sd-tbl'},h('thead',null,h('tr',null,...heads.map(t=>h('th',{text:t})))),h('tbody',null,...d.order.map(r=>{const w='order='+r.order;const tr=h('tr',{'data-key':r.order,tabindex:0},h('td',null,h('b',{text:r.order})),h('td',{class:'num'},dbar(r.subs_pct,mp),mk(sg(r.subs_pct,1)+'%','order','subs_pct',w)),h('td',{class:'num'},dbar(r.rev_pct,mp),mk(sg(r.rev_pct,1)+'%','order','rev_pct',w)),h('td',{class:'num'},'₹',mk(f0(r.vps_sep),'order','vps_sep',w),' → ₹',mk(f0(r.vps_oct),'order','vps_oct',w),' ',chip(r.value_pct,sg(r.value_pct,1)+'%',true)),h('td',{class:'num'},dbar(r.contrib_L,mc),mk(sg(r.contrib_L,2),'order','contrib_L',w),'L'),h('td',null,h('span',{class:'sd-pill',text:r.shape})));const go=()=>dash.setParams({otype:r.order});tr.addEventListener('click',go);tr.addEventListener('keydown',e=>{if(e.key==='Enter')go();});return tr;})));el.replaceChildren(tb);});
+
+dash.draw('matrix',el=>{const d=need(el,['cells','order','dept']);if(!d)return;const O=d.order.map(r=>r.order),D=d.dept.map(r=>r.dept);let tip=null;const g=h('div',{class:'sd-mx'});g.style.gridTemplateColumns='96px repeat('+O.length+',minmax(64px,1fr))';g.append(h('div'));O.forEach(o=>{const c=h('div',{class:'sd-mh',text:o});c.addEventListener('click',()=>dash.setParams({otype:o}));g.append(c);});D.forEach(dp=>{const l=h('div',{class:'sd-ml',text:dp});l.addEventListener('click',()=>dash.setParams({dept:dp,view:'dept'}));g.append(l);O.forEach(o=>{const c=d.cells.find(r=>r.dept===dp&&r.order===o);const cell=h('div',{class:'sd-mc'});if(!c||c.status!=='ok'||c.rev_pct_c==null){cell.classList.add('sd-na');cell.textContent=!c||c.status==='not_in_review'?'not in review':c.status==='too_small'?'too small':'not given';}else{const p=c.rev_pct_c,t=Math.min(1,Math.abs(p)/40);cell.style.background='color-mix(in srgb,'+col(p)+' '+Math.round(t*70)+'%,transparent)';cell.append(h('span',{text:sg(p,1)+'%'+(c.thin?' ◦':'')}));if(c.rev_delta_c!=null)cell.append(h('small',{text:dl(c.rev_delta_c)}));cell.addEventListener('mousemove',ev=>tip&&tip.on(ev,[dp+' · '+o,'Subs '+(c.subs_pct_c==null?'n/a':sg(c.subs_pct_c,1)+'%'),'Revenue '+sg(p,1)+'%'+(c.rev_delta_c==null?'':' ('+dl(c.rev_delta_c)+')'),'Value per sub '+(c.value_pct_c==null?'n/a':sg(c.value_pct_c,1)+'%')].concat(c.thin?['Base under 150 subs']:[],c.note?[c.note]:[])));cell.addEventListener('mouseleave',()=>tip&&tip.off());}g.append(cell);});});el.replaceChildren(g);tip=mkTip(el);});
+
+function butterfly(el,rows,aria){el.replaceChildren();el.classList.add('sd-host');const W=Math.max(el.clientWidth,320),rh=32,C=50,labW=Math.min(150,Math.round(W*0.34)),gap=16,top=28,pw=(W-labW-gap)/2,H=top+rows.length*rh+6;const xs=d3.scaleLinear().domain([-C,C]).range([0,pw]);const p1=labW,p2=labW+pw+gap;const svg=d3.select(el).append('svg').attr('viewBox','0 0 '+W+' '+H).attr('width','100%').attr('height',H).attr('role','img').attr('aria-label',aria);const tip=mkTip(el);svg.append('text').attr('x',p1+pw/2).attr('y',14).attr('text-anchor','middle').attr('class','hd').text('Subs charged, % change');svg.append('text').attr('x',p2+pw/2).attr('y',14).attr('text-anchor','middle').attr('class','hd').text('Revenue, % change');[p1,p2].forEach(p=>svg.append('line').attr('x1',p+xs(0)).attr('x2',p+xs(0)).attr('y1',top-4).attr('y2',H).style('stroke','var(--cds-chart-axis)'));rows.forEach((r,i)=>{const y=top+i*rh,cy=y+rh/2;svg.append('text').attr('x',0).attr('y',cy+4).text(r.label);[[p1,r.sp],[p2,r.rp]].forEach(([p,v])=>{if(v==null||r.status!=='ok'){svg.append('text').attr('x',p+pw/2).attr('y',cy+4).attr('text-anchor','middle').attr('class','mut sm').text(r.status==='too_small'?'too small to read':r.status==='not_in_review'?'not in review':'not given');return;}const cv=Math.max(-C,Math.min(C,v));const bx=p+Math.min(xs(0),xs(cv));svg.append('rect').attr('x',bx).attr('y',cy-7).attr('width',Math.max(2,Math.abs(xs(cv)-xs(0)))).attr('height',14).attr('rx',3).style('fill',r.thin?'none':col(v)).style('stroke',col(v)).attr('stroke-width',r.thin?1.5:0);if(Math.abs(v)>C)svg.append('text').attr('x',p+xs(cv)+(v>0?-2:2)).attr('y',cy+4).attr('text-anchor',v>0?'end':'start').style('fill','var(--color-bg)').attr('class','sm').text(v>0?'▸':'◂');svg.append('text').attr('x',p+xs(0)+(v>=0?-4:4)).attr('y',cy+4).attr('text-anchor',v>=0?'end':'start').attr('class','sm').text(sg(v,1)+'%');});svg.append('rect').attr('x',0).attr('y',y).attr('width',W).attr('height',rh).style('fill','transparent').on('mousemove',ev=>tip.on(ev,[r.label].concat(r.tip))).on('mouseleave',()=>tip.off());});}
+const cellRow=(c,label)=>({label:label,sp:c?c.subs_pct_c:null,rp:c?c.rev_pct_c:null,status:c?c.status:'not_in_review',thin:c?c.thin:false,tip:c?['Subs '+(c.subs_pct_c==null?'n/a':sg(c.subs_pct_c,1)+'%'),'Revenue '+(c.rev_pct_c==null?'n/a':sg(c.rev_pct_c,1)+'%')+(c.rev_delta_c==null?'':' ('+dl(c.rev_delta_c)+')'),'Value per sub '+(c.value_pct_c==null?'n/a':sg(c.value_pct_c,1)+'%')].concat(c.thin?['Base under 150 subs']:[],c.note?[c.note]:[]):['Not in the review']});
+dash.draw('dept_bf',el=>{const d=need(el,['cells','order']);if(!d)return;const dp=dash.params().dept||'All';if(dp==='All')return;butterfly(el,d.order.map(o=>cellRow(d.cells.find(c=>c.dept===dp&&c.order===o.order),o.order)),'Subs and revenue change by order type for '+dp);});
+dash.draw('order_bf',el=>{const d=need(el,['cells','dept']);if(!d)return;const ot=dash.params().otype||'All';if(ot==='All')return;butterfly(el,d.dept.map(p=>cellRow(d.cells.find(c=>c.dept===p.dept&&c.order===ot),p.dept)),'Subs and revenue change by department for '+ot);});
+
+function tiles(el,items){el.replaceChildren(...items.map(t=>h('div',{class:'sd-kpi'},h('div',{class:'sd-k-l',text:t.l}),h('div',{class:'sd-k-v',text:t.v}),h('div',{class:'sd-k-d'},t.d)),));}
+dash.draw('dept_title',el=>{const d=need(el,['dept']);if(!d)return;const r=d.dept.find(x=>x.dept===dash.params().dept);if(!r){el.textContent='—';return;}el.textContent=r.full_name+' · '+r.share_pct+'% of revenue · '+r.shape;});
+dash.draw('dept_tiles',el=>{const d=need(el,['dept']);if(!d)return;const r=d.dept.find(x=>x.dept===dash.params().dept);if(!r){el.replaceChildren();return;}const it=[{l:'Revenue',v:'₹'+Lk(r.rev_oct_L)+'L',d:chip(r.rev_delta_L,sg(r.rev_delta_L,2)+'L ('+sg(r.rev_pct,1)+'%)',true)},{l:'Subs charged',v:f0(r.subs_oct),d:chip(r.subs_delta,sg(r.subs_delta,0)+' ('+sg(r.subs_pct,1)+'%)',true)},{l:'Value per sub, vs Sep',v:sg(r.value_pct,1)+'%',d:chip(r.value_pct,r.value_pct>=0?'more each':'less each',true)},{l:'Active subs',v:r.active_oct==null?'n/a':f0(r.active_oct),d:r.active_oct==null?h('span',{class:'sd-muted',text:'not in review'}):chip(r.active_oct-r.active_sep,sg(r.active_oct-r.active_sep,0),true)},{l:'Cancellation churn',v:r.cancel_churn_oct+'%',d:chip(r.cancel_churn_oct-r.cancel_churn_sep,sg(r.cancel_churn_oct-r.cancel_churn_sep,2)+' pt',false)}];tiles(el,it);if(r.subs_gap!==0)el.append(h('p',{class:'sd-note',style:'grid-column:1/-1',text:'Check: Sep and Oct subs imply '+sg(r.subs_gap+r.subs_delta,0)+', but the review shows '+sg(r.subs_delta,0)+'. The review figure is used here.'}));});
+dash.draw('order_title',el=>{const d=need(el,['order']);if(!d)return;const r=d.order.find(x=>x.order===dash.params().otype);if(!r){el.textContent='—';return;}el.textContent=r.order+' · '+r.shape;});
+dash.draw('order_tiles',el=>{const d=need(el,['order']);if(!d)return;const r=d.order.find(x=>x.order===dash.params().otype);if(!r){el.replaceChildren();return;}tiles(el,[{l:'Subs charged',v:sg(r.subs_pct,1)+'%',d:chip(r.subs_pct,r.subs_delta!=null?sg(r.subs_delta,0)+' subs':'Sep → Oct',true)},{l:'Revenue',v:sg(r.rev_pct,1)+'%',d:chip(r.rev_pct,sg(r.contrib_L,2)+'L of net change',true)},{l:'Value per sub',v:'₹'+f0(r.vps_oct),d:chip(r.vps_oct-r.vps_sep,'from ₹'+f0(r.vps_sep)+' ('+sg(r.value_pct,1)+'%)',true)}]);});
+dash.draw('dept_select',sel=>{const g=dash.data('dept');const rows=g.status==='ok'?g.data:[];sel.replaceChildren(new Option('All departments','All'),...rows.map(r=>new Option(r.dept,r.dept)));sel.value=dash.params().dept||'All';sel.onchange=()=>dash.setParams({dept:sel.value});});
+dash.draw('order_select',sel=>{const g=dash.data('order');const rows=g.status==='ok'?g.data:[];sel.replaceChildren(new Option('All order types','All'),...rows.map(r=>new Option(r.order,r.order)));sel.value=dash.params().otype||'All';sel.onchange=()=>dash.setParams({otype:sel.value});});
+
+dash.draw('hero',el=>{const d=need(el,['bridge_sum','kpi']);if(!d)return;const s=d.bridge_sum[0],k={};d.kpi.forEach(r=>{k[r.metric]=r;});
+const mr=(t,f)=>h('span',{text:t,'data-source':'bridge_sum','data-field':f,'data-row':0});
+const left=h('div',null,h('div',{class:'sd-k-l',text:'Net revenue change, Sep → Oct'}),h('div',{class:'sd-big '+(s.net>=0?'up':'dn')},mr((s.net>=0?'+':'-')+'₹'+f2(Math.abs(s.net))+'L','net')),h('div',{class:'sd-muted',text:'Revenue ₹'+f1(k.revenue_L.oct)+'L, '+sg(k.revenue_L.d_sep_pct,1)+'% on September'}));
+const a=h('i');a.style.flex=String(s.added);a.style.background=POS;const r=h('i');r.style.flex=String(-s.removed);r.style.background=NEG;
+const split=h('div',{class:'sd-split','aria-hidden':'true'},a,r);
+const lab=h('div',{class:'sd-splitl'},h('span',null,'Gained ',h('b',{class:'up'},mr('+'+f2(s.added)+'L','added'))),h('span',null,'Lost ',h('b',{class:'dn'},mr(sg(s.removed,2)+'L','removed'))));
+const m=(key,label)=>{const x=k[key],p=KP[key];return h('div',{class:'sd-m'},h('div',{class:'sd-k-l',text:label}),h('b',null,p.fmt(x.oct)),chip(x.d_sep,p.dfmt(x.d_sep)+(p.pt?'':' ('+sg(x.d_sep_pct,1)+'%)'),p.up));};
+const right=h('div',null,h('div',{class:'sd-k-l',text:'₹ gained vs ₹ lost, before netting'}),split,lab,h('div',{class:'sd-three'},m('subs_charged','Subs charged'),m('avg_value','Value per sub'),m('churn_pct','Churn rate')));
+el.replaceChildren(left,right);});
+dash.draw('waterfall',el=>{const d=need(el,['bridge','bridge_sum']);if(!d)return;const st=d.bridge.filter(r=>r.delta_L>0).sort((a,b)=>b.delta_L-a.delta_L).concat(d.bridge.filter(r=>r.delta_L<0).sort((a,b)=>a.delta_L-b.delta_L));const PL={'Recurring: higher order value':['Existing subscribers paid more each','Recurring'],'Cancelled re-onboard':['Cancelled subscribers came back','Cancelled re-onboard'],'Re-activation':['Re-activations','Re-activation'],'Recurring: fewer subs':['Fewer existing subscribers billed','Recurring'],'Fresh':['New subscribers','Fresh'],'Upsell':['Upgrades','Upsell'],'Lapsed re-onboard':['Lapsed subscribers came back','Lapsed re-onboard']};
+const rows=st.map(r=>{const p=r.step.split(': ');const m=p.length>1?p[1]:r.step;const pl=PL[r.step];return{type:'bar',label:r.label||(pl?pl[0]:m.charAt(0).toUpperCase()+m.slice(1)),sub:r.detail||(pl?pl[1]:(p.length>1?p[0]:null)),v:r.delta_L,src:'bridge',field:'delta_L',where:'step='+r.step};});rows.push({type:'net',label:'Net change',sub:'Oct vs Sep',v:d.bridge_sum[0].net,src:'bridge_sum',field:'net',row:0});ladder(el,rows,{rh:40,labW:270,aria:'Revenue added and removed between September and October, in rupees lakh'});});
+dash.draw('dept_strip',el=>{const d=need(el,['dept']);if(!d)return;const rows=d.dept.slice().sort((a,b)=>b.rev_delta_L-a.rev_delta_L);const mx=d3.max(rows,r=>Math.abs(r.rev_delta_L));
+el.replaceChildren(...rows.map(r=>{const w='dept='+r.dept;const bar=h('i');bar.style.width=Math.max(4,Math.abs(r.rev_delta_L)/mx*100)+'%';bar.style.background=col(r.rev_delta_L);
+const c=h('button',{type:'button',class:'sd-dt'},h('div',{class:'sd-dt-h'},h('b',{text:r.dept}),h('span',{class:'sd-muted',text:r.share_pct+'% of revenue'})),h('div',{class:'sd-dt-v '+(r.rev_delta_L>=0?'up':'dn')},mk(dl(r.rev_delta_L),'dept','rev_delta_L',w)),h('div',{class:'sd-dt-bar','aria-hidden':'true'},bar),h('div',{class:'sd-dt-m'},h('span',{class:'sd-muted',text:'Subs '}),chip(r.subs_delta,sg(r.subs_delta,0)+' ('+sg(r.subs_pct,1)+'%)',true)),h('div',{class:'sd-dt-m'},h('span',{class:'sd-muted',text:'Value per sub '}),chip(r.value_pct,sg(r.value_pct,1)+'%',true)),h('span',{class:'sd-pill',text:r.shape}));
+c.addEventListener('click',()=>dash.setParams({dept:r.dept,view:'dept'}));return c;}));});
+dash.draw('readout',el=>{const g=need(el,['notes']);if(!g)return;const all=g.notes.map((r,i)=>Object.assign({i:i},r)).filter(r=>r.scope==='Overall');
+const B=[['working','What is working',POS],['not','What is not',NEG],['steady','What held steady',MUT]];
+el.replaceChildren(...B.map(([b,t,tone])=>{const it=all.filter(r=>r.bucket===b);const li=(r)=>h('li',{text:r.text,'data-source':'notes','data-field':'text','data-row':r.i});const top=it.slice(0,3),rest=it.slice(3);
+const box=h('div',{class:'sd-ro'},h('div',{class:'sd-ro-h'},h('span',{class:'sd-dot'}),h('b',{text:t}),h('span',{class:'sd-ro-n',text:String(it.length)})),h('ul',null,...(top.length?top.map(li):[h('li',{class:'sd-muted',text:'Nothing flagged in the review.'})])),rest.length?h('details',null,h('summary',{text:rest.length+' more'}),h('ul',null,...rest.map(li))):null);
+box.style.setProperty('--tone',tone);return box;}));});
+const OMON=['Jan-25','Feb-25','Mar-25','Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26','Apr-26','May-26','Jun-26','Jul-26','Aug-26','Sep-26','Oct-26'];
+const OTYPES=['All order types','Fresh','Upsell','Re-activation','Cancelled re-onboard','Lapsed re-onboard','Recurring'];
+const ODEPTS=['Telecalling','DM + Comms','Unattributed','Platform','SEO / SM'];
+const MNAME=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const mAhead=(k)=>{const t=9+Math.ceil(k);return MNAME[t%12]+' '+(2026+Math.floor(t/12));};
+const ofmt=(v,meas)=>meas==='revenue'?'₹'+(Math.abs(v)<10?f2(v):f1(v))+'L':f0(v);
+const ofmtD=(v,meas)=>meas==='revenue'?sg(v,2)+'L':sg(v,0);
+const WARNC='var(--cds-chart-status-warning)';
+dash.calc('lines_all',{title:'Monthly lines with department totals',description:'The monthly lines plus an All order types line for each department, the sum of its six order types.',inputs:['lines'],fn:(lines)=>{const agg={};lines.forEach(r=>{const k=r.dept+'|'+r.idx;if(!agg[k])agg[k]={dept:r.dept,order:'All order types',month:r.month,idx:r.idx,subs:0,revenue_L:0};agg[k].subs+=r.subs;agg[k].revenue_L=Math.round((agg[k].revenue_L+r.revenue_L)*10000)/10000;});return lines.concat(Object.values(agg));}});
+dash.calc('outlook',{title:'Months to critical, by department and order type',description:'For each line: average of the last 6 months (May to Oct 2026), trend per month over those 6 months, the critical level (10% below the average for Recurring and for All order types, 30% for every other order type, warning at half that), and months until the trend reaches critical at the current rate and at a 1.5 times faster fall. Lines averaging under 50 subs a month are marked too small to project.',inputs:['lines_all'],fn:(lines)=>{const by={};lines.forEach(r=>{const k=r.dept+'|'+r.order;(by[k]=by[k]||[])[r.idx]=r;});const out=[];Object.keys(by).forEach(k=>{const a=by[k],d=a[0].dept,o=a[0].order;['subs','revenue'].forEach(meas=>{const fld=meas==='subs'?'subs':'revenue_L';const w=[16,17,18,19,20,21].map(i=>a[i]?a[i][fld]:0);const avg=w.reduce((s,v)=>s+v,0)/6;let num=0,den=0;w.forEach((v,i)=>{num+=(i-2.5)*(v-avg);den+=(i-2.5)*(i-2.5);});const slope=num/den,level=avg+slope*2.5,last=w[5];const thr=(o==='Recurring'||o==='All order types')?0.10:0.30;const crit=avg*(1-thr),warn=avg*(1-thr/2);const subsAvg=[16,17,18,19,20,21].reduce((s,i)=>s+(a[i]?a[i].subs:0),0)/6;const small=subsAvg<50;const mt=(s)=>{if(level<=crit)return 0;if(s>=0)return null;return Math.round((level-crit)/(-s)*10)/10;};const mc=mt(slope),mf=mt(slope*1.5);let status;if(small)status='Too small to project';else if(last<=crit)status='Critical now';else if(mc!==null&&mc<=6)status='Critical within 6 months';else if(last<=warn)status='Warning now';else if(mc!==null&&mc<=12)status='Critical in 6 to 12 months';else if(mc!==null)status='Critical in over 12 months';else status='Not heading to critical';const rank={'Critical now':0,'Critical within 6 months':1,'Warning now':2,'Critical in 6 to 12 months':3,'Critical in over 12 months':4,'Not heading to critical':5,'Too small to project':6}[status];const q=(v,n)=>Math.round(v*n)/n;out.push({dept:d,order:o,measure:meas,avg6:q(avg,100),last:q(last,100),slope:q(slope,100),level:q(level,100),threshold_pct:thr*100,critical:q(crit,100),warning:q(warn,100),vs_avg_pct:avg?q((last/avg-1)*100,10):0,slope_pct:avg?q(slope/avg*100,10):0,months_current:mc,months_fast:mf,status:status,rank:rank,small:small});});});return out;}});
+const otone=(st)=>st==='Critical now'||st==='Critical within 6 months'?NEG:st==='Warning now'||st==='Critical in 6 to 12 months'?WARNC:st==='Too small to project'?MUT:POS;
+const oP=()=>{const p=dash.params();return{d:p.o_dept||'All departments',o:p.o_otype||'Fresh',m:p.o_meas==='revenue'?'revenue':'subs'};};
+const mtxt=(m)=>m===null?'not heading there':m===0?'now':(m>24?'in over 2 years':'in ~'+Math.ceil(m)+(Math.ceil(m)===1?' month':' months')+' ('+mAhead(m)+')');
+dash.draw('o_controls',el=>{const p=oP();const chip=(t,on,fn)=>{const b=h('button',{type:'button',class:'sd-btn'+(on?' on':''),text:t});b.addEventListener('click',fn);return b;};const sel=h('select',{class:'dash-select','aria-label':'Department'});[['All departments','All departments (total)'],['Compare','Compare departments']].concat(ODEPTS.map(x=>[x,x])).forEach(([v,t])=>sel.append(new Option(t,v)));sel.value=p.d;sel.onchange=()=>dash.setParams({o_dept:sel.value});el.replaceChildren(h('div',{class:'sd-bar'},h('label',{text:'Measure'}),chip('Subscriptions',p.m==='subs',()=>dash.setParams({o_meas:'subs'})),chip('Revenue',p.m==='revenue',()=>dash.setParams({o_meas:'revenue'})),h('span',{style:'width:12px'}),h('label',{text:'Department'}),sel),h('div',{class:'sd-bar'},h('label',{text:'Order type'}),...OTYPES.map(o=>chip(o,p.o===o,()=>dash.setParams({o_otype:o})))));});
+dash.draw('o_head',el=>{const d=need(el,['outlook']);if(!d)return;const p=oP();if(p.d==='Compare'){const rows=d.outlook.filter(r=>r.order===p.o&&r.measure===p.m&&ODEPTS.includes(r.dept)&&!r.small).sort((a,b)=>a.rank-b.rank||((a.months_current==null?999:a.months_current)-(b.months_current==null?999:b.months_current)));const worst=rows[0];el.replaceChildren(h('p',{class:'sd-o-say'},worst?[h('b',{text:p.o}),' across departments, indexed to each one’s own last-6-month average = 100. ',h('b',{text:worst.dept}),' is closest to critical, reaching it ',mtxt(worst.months_current),' at the current rate.',(()=>{const sm=d.outlook.filter(r=>r.order===p.o&&r.measure===p.m&&ODEPTS.includes(r.dept)&&r.small).map(r=>r.dept);return sm.length?' Not shown, too small to project: '+sm.join(', ')+'.':'';})()]:'No department is large enough to project for '+p.o+'.'));return;}const r=d.outlook.find(x=>x.dept===p.d&&x.order===p.o&&x.measure===p.m);if(!r){el.textContent='—';return;}const w='dept='+r.dept+'&order='+r.order+'&measure='+r.measure;const name=(p.d==='All departments'?'All departments':p.d)+' · '+p.o;let say;if(r.small)say=[h('b',{text:name}),' averages under 50 subs a month, too few to project reliably. The chart shows actuals only.'];else if(r.status==='Critical now')say=[h('b',{text:name}),' is already below its critical level.'];else if(r.months_current===null)say=[h('b',{text:name}),' is not heading toward critical: over the last 6 months it trends ',h('b',{class:r.slope>=0?'up':'dn',text:(r.slope>=0?'up ':'down ')+ofmtD(Math.abs(r.slope),p.m).replace(/^[+-]/,'')+' a month'}),'.'];else say=[h('b',{text:name}),': at the current rate it reaches critical ',h('b',{class:'dn',text:mtxt(r.months_current)}),'. If the fall is 1.5× faster: ',h('b',{class:'dn',text:mtxt(r.months_fast)}),'.'];const tile=(l,v,dd)=>h('div',{class:'sd-kpi'},h('div',{class:'sd-k-l',text:l}),h('div',{class:'sd-k-v'},v),h('div',{class:'sd-k-d'},dd));const pill=h('span',{class:'sd-pill',text:r.status});pill.style.borderColor=otone(r.status);pill.style.color=otone(r.status);el.replaceChildren(h('p',{class:'sd-o-say'},...say,' ',pill),r.small?h('div'):h('div',{class:'sd-kpis'},tile('Oct-26',mk(ofmt(r.last,p.m),'outlook','last',w),chip(r.vs_avg_pct,sg(r.vs_avg_pct,1)+'% vs 6-mo avg',true)),tile('Last 6-month average',mk(ofmt(r.avg6,p.m),'outlook','avg6',w),h('span',{class:'sd-muted',text:'May–Oct 2026'})),tile('Trend per month',mk(ofmtD(r.slope,p.m),'outlook','slope',w),chip(r.slope,sg(r.slope_pct,1)+'% of average',true)),tile('Critical level',mk(ofmt(r.critical,p.m),'outlook','critical',w),h('span',{class:'sd-muted',text:r.threshold_pct+'% below the average'}))));});
+dash.draw('o_chart',el=>{const d=need(el,['lines_all','outlook']);if(!d)return;el.replaceChildren();el.classList.add('sd-host');const p=oP(),fld=p.m==='subs'?'subs':'revenue_L';const cmp=p.d==='Compare';const depts=cmp?ODEPTS:[p.d];const items=depts.map((dp,i)=>{const r=d.outlook.find(x=>x.dept===dp&&x.order===p.o&&x.measure===p.m);const act=d.lines_all.filter(x=>x.dept===dp&&x.order===p.o&&x.idx>=10).sort((a,b)=>a.idx-b.idx).map(x=>x[fld]);return{dp:dp,r:r,act:act,c:cmp?dash.colors[ODEPTS.indexOf(dp)%dash.colors.length]:FG};}).filter(it=>it.r&&!(cmp&&it.r.small));if(!items.length){el.append(h('p',{class:'sd-muted',text:'Every department is too small to project for '+p.o+'.'}));return;}const sc=(it,v)=>cmp?v/it.r.avg6*100:v;const one=!cmp?items[0].r:null;let H=0;items.forEach(it=>{if(it.r.small)return;[it.r.months_current,cmp?null:it.r.months_fast].forEach(m=>{if(m!==null&&m>0)H=Math.max(H,Math.ceil(m)+2);});});H=Math.max(6,Math.min(24,H||6));const N=12+H;const lab=(i)=>{const t=10+i;return MNAME[t%12]+'-'+String(25+Math.floor(t/12)).padStart(2,'0');};const proj=(it,mult)=>{const out=[];for(let k=0;k<=H;k++){out.push([11+k,it.r.level+it.r.slope*mult*k]);}return out;};let vals=[];items.forEach(it=>{it.act.forEach(v=>vals.push(sc(it,v)));if(!it.r.small){proj(it,1).forEach(q=>vals.push(sc(it,q[1])));if(!cmp)proj(it,1.5).forEach(q=>vals.push(sc(it,q[1])));vals.push(sc(it,it.r.critical));}});const W=Math.max(el.clientWidth,320),Hh=Math.round(Math.min(380,Math.max(280,W*0.5))),m={t:16,r:W<520?96:150,b:30,l:W<520?44:58};const lo=Math.max(0,d3.min(vals)),hi=d3.max(vals),pad=(hi-lo)*0.08||1;const x=d3.scaleLinear().domain([0,N-1]).range([m.l,W-m.r]),y=d3.scaleLinear().domain([Math.max(0,lo-pad),hi+pad]).nice().range([Hh-m.b,m.t]);const svg=d3.select(el).append('svg').attr('viewBox','0 0 '+W+' '+Hh).attr('width','100%').attr('height',Hh).attr('role','img').attr('aria-label',(cmp?'Departments compared, indexed':'Actuals and projections')+' for '+p.o);const tip=mkTip(el);const yf=cmp?(v=>v):(p.m==='revenue'?(v=>'₹'+d3.format(',.1~f')(v)+'L'):(v=>d3.format(',.0f')(v)));svg.append('g').attr('class','tick').attr('transform','translate('+m.l+',0)').call(d3.axisLeft(y).ticks(5).tickSize(-(W-m.l-m.r)).tickFormat(yf)).call(g=>{g.select('.domain').remove();g.selectAll('line').style('stroke','var(--cds-chart-grid)');});const crit=cmp?(100-items[0].r.threshold_pct):one.critical,warn=cmp?(100-items[0].r.threshold_pct/2):one.warning;if(cmp||!one.small){svg.append('rect').attr('x',m.l).attr('width',W-m.l-m.r).attr('y',y(crit)).attr('height',Math.max(0,Hh-m.b-y(crit))).style('fill',NEG).attr('opacity',0.07);svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(crit)).attr('y2',y(crit)).style('stroke',NEG).attr('stroke-width',1.5);svg.append('text').attr('x',W-m.r+6).attr('y',y(crit)+4).attr('class','sm').style('fill',NEG).text('Critical'+(cmp?' ('+crit+')':' '+yf(crit)));svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(warn)).attr('y2',y(warn)).style('stroke',WARNC).attr('stroke-dasharray','4 3');svg.append('text').attr('x',W-m.r+6).attr('y',y(warn)+4).attr('class','sm').style('fill',WARNC).text('Warning');if(!cmp){svg.append('line').attr('x1',x(6)).attr('x2',x(11)).attr('y1',y(one.avg6)).attr('y2',y(one.avg6)).style('stroke','var(--cds-chart-reference)').attr('stroke-dasharray','2 3');svg.append('text').attr('x',x(6)).attr('y',y(one.avg6)-5).attr('class','mut sm').text('6-mo avg');}}svg.append('rect').attr('x',x(11)).attr('width',x(N-1)-x(11)).attr('y',m.t).attr('height',Hh-m.t-m.b).style('fill','var(--color-fg)').attr('opacity',0.03);svg.append('line').attr('x1',x(11)).attr('x2',x(11)).attr('y1',m.t).attr('y2',Hh-m.b).style('stroke','var(--cds-chart-axis)');svg.append('text').attr('x',x(11)+5).attr('y',m.t+10).attr('class','mut sm').text('Projection →');const step=N>24?3:2;for(let i=0;i<N;i+=step)svg.append('text').attr('x',x(i)).attr('y',Hh-10).attr('text-anchor','middle').attr('class','mut sm').text(lab(i));const ln=d3.line().x(q=>x(q[0])).y(q=>y(q[1]));const ends=[];items.forEach(it=>{const a=it.act.map((v,i)=>[i,sc(it,v)]);svg.append('path').attr('d',ln(a)).attr('fill','none').style('stroke',it.c).attr('stroke-width',2.5).attr('stroke-linejoin','round');svg.append('circle').attr('cx',x(11)).attr('cy',y(a[11][1])).attr('r',4).style('fill',it.c).style('stroke','var(--color-panel)').attr('stroke-width',2);if(it.r.small){ends.push({y:y(a[11][1]),t:it.dp+' (actuals only)',c:it.c});return;}const sets=cmp?[[1,it.c,'5 4',null]]:[[1,POS,'6 4','Current rate'],[1.5,NEG,'3 3','1.5× faster']];sets.forEach(([mult,c,da,nm])=>{const pr=proj(it,mult).map(q=>[q[0],sc(it,q[1])]);svg.append('path').attr('d',ln([[11,a[11][1]]].concat(pr.slice(1)))).attr('fill','none').style('stroke',c).attr('stroke-width',2).attr('stroke-dasharray',da);const mm=mult===1?it.r.months_current:it.r.months_fast;if(mm!==null&&mm>0&&mm<=H){const cx=x(11+mm),cy=y(sc(it,it.r.critical));svg.append('circle').attr('cx',cx).attr('cy',cy).attr('r',5).style('fill','var(--color-panel)').style('stroke',c).attr('stroke-width',2.5);if(!cmp)svg.append('text').attr('x',cx).attr('y',cy+(mult===1?-10:18)).attr('text-anchor','middle').attr('class','sm hd').style('fill',c).text(mAhead(mm));}const lastp=pr[pr.length-1];ends.push({y:y(lastp[1]),t:cmp?it.dp:nm,c:c});});});ends.sort((a,b)=>a.y-b.y);for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<13)ends[i].y=ends[i-1].y+13;ends.forEach(e=>svg.append('text').attr('x',x(N-1)+6).attr('y',e.y+4).attr('class','sm').style('fill',e.c).text(e.t));svg.append('rect').attr('x',m.l).attr('width',W-m.l-m.r).attr('y',m.t).attr('height',Hh-m.t-m.b).style('fill','transparent').on('mousemove',ev=>{const r=el.getBoundingClientRect();const i=Math.max(0,Math.min(N-1,Math.round(x.invert(ev.clientX-r.left))));const lines=[lab(i)+(i>11?' (projected)':'')];items.forEach(it=>{if(i<=11){const v=it.act[i];lines.push((cmp?it.dp+': ':'Actual: ')+(cmp?f1(sc(it,v)):ofmt(v,p.m)));}else if(!it.r.small){const k=i-11;const c1=it.r.level+it.r.slope*k;if(cmp)lines.push(it.dp+': '+f1(sc(it,c1)));else{lines.push('Current rate: '+ofmt(c1,p.m));lines.push('1.5× faster: '+ofmt(it.r.level+it.r.slope*1.5*k,p.m));}}});tip.on(ev,lines);}).on('mouseleave',()=>tip.off());});
+dash.draw('o_rank',el=>{const d=need(el,['outlook']);if(!d)return;const p=oP();const rows=d.outlook.filter(r=>r.measure===p.m&&ODEPTS.includes(r.dept));const big=rows.filter(r=>!r.small).sort((a,b)=>a.rank-b.rank||((a.months_current==null?999:a.months_current)-(b.months_current==null?999:b.months_current))),small=rows.filter(r=>r.small);const tr=(r)=>{const w='dept='+r.dept+'&order='+r.order+'&measure='+r.measure;const on=r.dept===p.d&&r.order===p.o;const dot=h('span',{class:'sd-dot'});dot.style.background=otone(r.status);const row=h('tr',{'data-key':r.dept+r.order,tabindex:0,class:on?'sd-on':''},h('td',null,dot,' ',h('b',{text:r.order}),h('span',{class:'sd-muted',text:' · '+r.dept})),h('td',{class:'num'},r.small?'—':chip(r.vs_avg_pct,sg(r.vs_avg_pct,1)+'%',true)),h('td',{class:'num'},r.small?'—':mk(ofmtD(r.slope,p.m),'outlook','slope',w)),h('td',null,r.small?h('span',{class:'sd-muted',text:'too small'}):mtxt(r.months_current)),h('td',null,r.small?'':mtxt(r.months_fast)),h('td',null,h('span',{class:'sd-muted',text:r.small?'':r.status})));const go=()=>dash.setParams({o_dept:r.dept,o_otype:r.order});row.addEventListener('click',go);row.addEventListener('keydown',e=>{if(e.key==='Enter')go();});return row;};const head=h('thead',null,h('tr',null,...['Line','Oct vs 6-mo avg','Trend / month','Current rate','1.5× faster','Status'].map(t=>h('th',{text:t}))));el.replaceChildren(h('table',{class:'sd-tbl'},head,h('tbody',null,...big.map(tr))),small.length?h('details',{class:'sd-note'},h('summary',{text:small.length+' lines too small to project (under 50 subs a month)'}),h('table',{class:'sd-tbl'},h('tbody',null,...small.map(tr)))):null);});
+let hashed=false;
+dash.onData(()=>{const p=dash.params();if(!hashed){hashed=true;const hv=(location.hash||'').replace('#','');if(VIEWS.includes(hv)&&hv!==p.view){dash.setParams({view:hv});return;}}const v=VIEWS.includes(p.view)?p.view:'insights';document.querySelectorAll('[data-sec]').forEach(s=>{s.hidden=s.getAttribute('data-sec')!==v;});document.querySelectorAll('.sd-tab').forEach(b=>{const on=b.getAttribute('data-view')===v;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false');});const da=(p.dept||'All')==='All',oa=(p.otype||'All')==='All';document.querySelectorAll('[data-box]').forEach(b=>{const k=b.getAttribute('data-box');if(k==='dept-all')b.hidden=!da;if(k==='dept-one')b.hidden=da;if(k==='order-all')b.hidden=!oa;if(k==='order-one')b.hidden=oa;});document.querySelectorAll('.sd-lens').forEach(b=>b.classList.toggle('on',b.getAttribute('data-lens')===(p.lens||'order')));document.querySelectorAll('.sd-w').forEach(e=>{e.style.borderTopColor=POS;});});
+document.querySelectorAll('.sd-tab').forEach(b=>b.addEventListener('click',()=>{const v=b.getAttribute('data-view');dash.setParams({view:v});dash.setLink(v);}));
+document.querySelectorAll('.sd-lens').forEach(b=>b.addEventListener('click',()=>dash.setParams({lens:b.getAttribute('data-lens')})));
+document.querySelectorAll('[data-reset]').forEach(b=>b.addEventListener('click',()=>{const o={};o[b.getAttribute('data-reset')]='All';dash.setParams(o);}));
+</script>
+</body>
+</html>

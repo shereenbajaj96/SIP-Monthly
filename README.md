@@ -20,3 +20,11 @@ The monthly SIP revenue dashboard. It has five tabs:
 - Trend: a straight-line fit over those 6 months.
 - Critical: 10% below the baseline for Recurring and All order types, 30% below for every other order type. Warning is halfway to critical.
 - Lines averaging under 50 subs a month are not projected.
+
+## Hosting on Vercel
+
+- `public/index.html` is the standalone site, built from `dashboard/page.html` with `python3 scripts/build_site.py`. It asks for a password, then loads the data from `/api/data`.
+- `api/data.js` returns the data only when the password matches. The data and password live in two Vercel environment variables, never in this repo:
+  - `DASH_PASSWORD`: the password viewers type.
+  - `DASH_DATA`: all data files packed into one string with `python3 scripts/pack_data.py data/`.
+- To refresh the numbers each month: rebuild the data files, re-pack them, paste the result into `DASH_DATA` in Vercel, and redeploy.
