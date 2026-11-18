@@ -89,6 +89,15 @@
 .sd-o-say{font-size:var(--cds-font-size-heading);line-height:1.45;margin:0 0 14px;max-width:80ch}
 .sd-tbl tr.sd-on td{background:color-mix(in srgb,var(--color-fg) 7%,transparent)}
 .sd-tbl .sd-dot{display:inline-block;vertical-align:middle}
+.sd-coll>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.sd-coll>summary::-webkit-details-marker{display:none}
+.sd-coll>summary h3{margin:0}
+.sd-coll>summary::before{content:'▸';color:var(--color-fg-muted);font-size:12px;transition:transform .15s}
+.sd-coll[open]>summary::before{transform:rotate(90deg)}
+.sd-coll-hint{margin-left:auto;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.sd-coll-hint::after{content:'Show'}
+.sd-coll[open] .sd-coll-hint::after{content:'Hide'}
+.sd-coll[open]>summary{margin-bottom:6px}
 @media (max-width:720px){.sd-hero{grid-template-columns:1fr;gap:18px}.sd-big{font-size:44px}}
 </style>
 <div class='sd'>
@@ -168,7 +177,7 @@
 <div data-draw='o_chart' data-source='lines_all outlook' style='min-height:300px'>—</div>
 <p class='sd-note'>Solid line: actual, Nov 2025 to Oct 2026. Dashed: projection from the last 6 months' trend, at the current rate and with the fall 1.5× faster. Critical is 10% below the last 6-month average for Recurring and All order types, and 30% below for every other order type; warning is halfway there. Pick Compare departments to see every department on one scale.</p>
 </div>
-<div class='sd-card'><h3>Watchlist: every department × order type</h3><p class='sd-sub'>Sorted by how close each line is to critical. Click a row to load it in the chart above.</p><div class='sd-wrap' data-draw='o_rank' data-source='outlook' style='min-height:240px'>—</div></div>
+<details class='sd-card sd-coll'><summary><h3>Watchlist: every department × order type</h3><span class='sd-coll-hint'></span></summary><p class='sd-sub'>Sorted by how close each line is to critical. Click a row to load it in the chart above.</p><div class='sd-wrap' data-draw='o_rank' data-source='outlook' style='min-height:240px'>—</div></details>
 </section>
 
 <details class='sd-foot'><summary>Notes and caveats</summary>
