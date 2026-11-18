@@ -1,0 +1,8 @@
+# Business data never goes in this repo
+data/*
+!data/README.md
+*.csv
+*.xlsx
+*.xls
+*.docx
+*.pdf
