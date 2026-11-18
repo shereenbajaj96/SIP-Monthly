@@ -36,7 +36,7 @@ body{padding:28px 20px 60px}
 <div id="app" hidden>
 <!--PAGE-->
 </div>
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="/d3.min.js"></script>
 <script>
 (function(){
   var calcs={},draws={},cbs=[],raw=null,cache={};
@@ -71,10 +71,12 @@ body{padding:28px 20px 60px}
   };
   var t;window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(schedule,150);});
   var gate=document.getElementById('gate'),msg=document.getElementById('gate-msg');
+  window.addEventListener('error',function(e){if(!gate.hidden)msg.textContent='Error: '+(e.message||'script failed to load');});
+  var slow=setTimeout(function(){if(!gate.hidden)msg.textContent='Still loading the data… if this stays, refresh the page.';},15000);
   fetch('/api/data',{cache:'no-store'}).then(function(r){
     if(!r.ok)return r.json().catch(function(){return{};}).then(function(j){throw new Error(j.error||'Could not load the data.');});
     return r.json();
-  }).then(function(d){gate.hidden=true;document.getElementById('app').hidden=false;window.dash._load(d);})
+  }).then(function(d){clearTimeout(slow);gate.hidden=true;document.getElementById('app').hidden=false;window.dash._load(d);})
   .catch(function(err){msg.textContent=err.message;});
 })();
 </script>
