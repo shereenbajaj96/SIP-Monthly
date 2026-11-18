@@ -24,15 +24,15 @@ html,body{margin:0;background:var(--color-bg);color:var(--color-fg);font-family:
 body{padding:28px 20px 60px}
 .dash-select{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--color-border-line);border-radius:8px;background:var(--color-panel);color:var(--color-fg);min-width:200px}
 #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--color-bg);z-index:50}
-#gate form{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:12px;padding:28px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px}
+#gate div{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:12px;padding:28px;width:min(340px,90vw);display:flex;flex-direction:column;gap:12px}
 #gate h1{font:400 24px/1.2 var(--font-anthropic-serif);margin:0}
 #gate input{font:inherit;padding:9px 11px;border:1px solid var(--color-border-line);border-radius:8px;background:var(--color-bg);color:var(--color-fg)}
 #gate button{font:inherit;font-weight:600;padding:9px;border:0;border-radius:8px;background:var(--color-fg);color:var(--color-bg);cursor:pointer}
-#gate p{margin:0;font-size:13px;color:var(--color-bad);min-height:1em}
+#gate p{margin:0;font-size:14px;color:var(--color-fg-muted)}
 </style>
 </head>
 <body>
-<div id="gate"><form autocomplete="on"><h1>SIP Revenue Dashboard</h1><input type="password" name="pw" placeholder="Password" autocomplete="current-password" required autofocus><button type="submit">Open</button><p id="gate-msg"></p></form></div>
+<div id="gate"><p id="gate-msg">Loading…</p></div>
 <div id="app" hidden>
 <!--PAGE-->
 </div>
@@ -70,21 +70,12 @@ body{padding:28px 20px 60px}
     _load:function(d){raw=d;cache={};schedule();}
   };
   var t;window.addEventListener('resize',function(){clearTimeout(t);t=setTimeout(schedule,150);});
-  var gate=document.getElementById('gate'),msg=document.getElementById('gate-msg'),form=gate.querySelector('form');
-  function open(pw){
-    msg.textContent='';
-    return fetch('/api/data',{headers:{'x-dash-key':pw},cache:'no-store'}).then(function(r){
-      if(r.status===401)throw new Error('Wrong password.');
-      if(!r.ok)return r.json().catch(function(){return{};}).then(function(j){throw new Error(j.error||'Could not load the data.');});
-      return r.json();
-    }).then(function(d){
-      try{sessionStorage.setItem('sipdash',pw);}catch(e){}
-      gate.hidden=true;document.getElementById('app').hidden=false;window.dash._load(d);
-    });
-  }
-  form.addEventListener('submit',function(e){e.preventDefault();open(form.elements.pw.value).catch(function(err){msg.textContent=err.message;});});
-  var saved=null;try{saved=sessionStorage.getItem('sipdash');}catch(e){}
-  if(saved)open(saved).catch(function(){try{sessionStorage.removeItem('sipdash');}catch(e){}});
+  var gate=document.getElementById('gate'),msg=document.getElementById('gate-msg');
+  fetch('/api/data',{cache:'no-store'}).then(function(r){
+    if(!r.ok)return r.json().catch(function(){return{};}).then(function(j){throw new Error(j.error||'Could not load the data.');});
+    return r.json();
+  }).then(function(d){gate.hidden=true;document.getElementById('app').hidden=false;window.dash._load(d);})
+  .catch(function(err){msg.textContent=err.message;});
 })();
 </script>
 <!--SCRIPT-->

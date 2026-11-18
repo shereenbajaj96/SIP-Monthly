@@ -23,8 +23,7 @@ The monthly SIP revenue dashboard. It has five tabs:
 
 ## Hosting on Vercel
 
-- `public/index.html` is the standalone site, built from `dashboard/page.html` with `python3 scripts/build_site.py`. It asks for a password, then loads the data from `/api/data`.
-- `api/data.js` returns the data only when the password matches. The data and password live in two Vercel environment variables, never in this repo:
-  - `DASH_PASSWORD`: the password viewers type.
-  - `DASH_DATA`: all data files packed into one string with `python3 scripts/pack_data.py data/`.
+- `public/index.html` is the standalone site, built from `dashboard/page.html` with `python3 scripts/build_site.py`. It loads the data from `/api/data`.
+- `api/data.js` serves the data from the `DASH_DATA` Vercel environment variable (all data files packed into one string with `python3 scripts/pack_data.py data/`). The data never goes in this repo.
+- There is no dashboard password. Access is controlled by Vercel's login protection on the project, so keep it on: anyone who gets past it can see the numbers.
 - To refresh the numbers each month: rebuild the data files, re-pack them, paste the result into `DASH_DATA` in Vercel, and redeploy.
